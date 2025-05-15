@@ -1,3 +1,56 @@
+"""
+诗词古今翻译技术流程图：
+输入诗词 -> 分句处理 -> 基础翻译 -> 主题识别 -> 修辞分析 -> 意象解释 -> 输出结果
+  ↓
+分句    意象词替换    主题匹配    修辞匹配    意象匹配
+(。，)  (词典)     (关键词)    (模式)     (词典)
+
+技术说明：
+1. 翻译方法：
+   - 基础翻译：
+     * 分句处理：按标点符号分割
+     * 意象词替换：使用预定义词典
+     * 语法调整：替换常见古语词
+   - 主题识别：
+     * 使用关键词匹配
+     * 识别思乡、送别、咏史等主题
+   - 修辞分析：
+     * 识别比喻、对仗等修辞手法
+     * 提供修辞手法解释
+     * 实现方式：
+       - 预定义修辞手法词典（比喻、对仗、借景抒情等）
+       - 为每种修辞手法定义关键词模式
+       - 通过关键词匹配识别修辞手法
+       - 提供修辞手法的详细解释
+     * 支持的修辞手法：
+       - 比喻：通过"如"、"似"、"若"、"像"等词识别
+       - 对仗：通过"对仗"、"对偶"等词识别
+       - 借景抒情：通过"借景"、"寓情"等词识别
+       - 用典：通过"典故"、"引用"等词识别
+       - 夸张：通过"夸张"、"夸大"等词识别
+   - 意象解释：
+     * 识别诗词中的意象词
+     * 提供意象词详细解释
+
+2. 使用工具：
+   - 预定义词典：意象词、主题、修辞手法
+   - 正则表达式：用于分句和模式匹配
+   - 日志系统：记录翻译过程
+
+3. NLP技术：
+   - 中文分词（HanLP）：
+     * 用于分句处理
+     * 识别词语边界
+   - 词典匹配：
+     * 意象词匹配：替换古语词为现代词
+     * 主题匹配：识别诗词主题
+     * 修辞匹配：识别修辞手法
+   - 文本处理：
+     * 简单的语法调整
+     * 标点符号处理
+     * 词语替换
+"""
+
 import random
 import logging
 from pyhanlp import *
@@ -81,6 +134,24 @@ class PoemTranslator:
             '阳关': '阳关',
             '故人': '老朋友'
         }
+        
+        # 诗词主题解释
+        self.theme_dict = {
+            '思乡': '这首诗表达了诗人对故乡的思念之情。',
+            '送别': '这是一首送别诗，表达了诗人对离别的感伤和对友人的祝福。',
+            '咏史': '这首诗通过历史典故，抒发了诗人对历史的感慨。',
+            '山水': '这是一首描写自然山水的诗，展现了诗人对自然的热爱。',
+            '抒情': '这首诗主要表达了诗人的情感和感受。'
+        }
+        
+        # 常见修辞手法解释
+        self.rhetoric_dict = {
+            '比喻': '通过比喻手法，使诗歌更加生动形象。',
+            '对仗': '运用对仗手法，使诗歌结构工整，韵律和谐。',
+            '借景抒情': '通过描写景物来表达情感。',
+            '用典': '运用历史典故，增加诗歌的文化内涵。',
+            '夸张': '通过夸张手法，突出诗歌的主题。'
+        }
 
     def translate_poem(self, poem):
         """翻译诗词为现代白话文"""
@@ -91,15 +162,34 @@ class PoemTranslator:
             
             # 翻译结果
             translation = []
+            explanation = []
             
+            # 基础翻译
             for sentence in sentences:
-                # 基础翻译
                 base_trans = self._translate_sentence(sentence)
                 translation.append(base_trans)
             
+            # 添加主题解释
+            theme = self._identify_theme(poem)
+            if theme:
+                explanation.append(f"主题：{self.theme_dict.get(theme, '')}")
+            
+            # 添加修辞手法解释
+            rhetoric = self._identify_rhetoric(poem)
+            if rhetoric:
+                explanation.append(f"修辞：{self.rhetoric_dict.get(rhetoric, '')}")
+            
+            # 添加意象解释
+            imagery = self._identify_imagery(poem)
+            if imagery:
+                explanation.append("意象分析：")
+                for word, meaning in imagery.items():
+                    explanation.append(f"- {word}：{meaning}")
+            
             return {
                 'original': poem,
-                'translation': '，'.join(translation) + '。'
+                'translation': '，'.join(translation) + '。',
+                'explanation': '\n'.join(explanation)
             }
         except Exception as e:
             logging.error(f"翻译诗词时出错：{str(e)}")
@@ -119,6 +209,44 @@ class PoemTranslator:
         sentence = sentence.replace('孤', '孤独')
         
         return sentence
+
+    def _identify_theme(self, poem):
+        """识别诗词主题"""
+        themes = {
+            '思乡': ['故乡', '思乡', '乡愁', '归家'],
+            '送别': ['送别', '离别', '远行', '告别'],
+            '咏史': ['历史', '典故', '古人', '往事'],
+            '山水': ['山', '水', '云', '雨', '风', '月'],
+            '抒情': ['情', '思', '愁', '喜', '悲']
+        }
+        
+        for theme, keywords in themes.items():
+            if any(keyword in poem for keyword in keywords):
+                return theme
+        return None
+
+    def _identify_rhetoric(self, poem):
+        """识别修辞手法"""
+        rhetoric_patterns = {
+            '比喻': ['如', '似', '若', '像'],
+            '对仗': ['对仗', '对偶'],
+            '借景抒情': ['借景', '寓情'],
+            '用典': ['典故', '引用'],
+            '夸张': ['夸张', '夸大']
+        }
+        
+        for rhetoric, patterns in rhetoric_patterns.items():
+            if any(pattern in poem for pattern in patterns):
+                return rhetoric
+        return None
+
+    def _identify_imagery(self, poem):
+        """识别意象词"""
+        imagery = {}
+        for word, meaning in self.imagery_dict.items():
+            if word in poem:
+                imagery[word] = meaning
+        return imagery
 
     def get_random_poem(self):
         """获取随机诗词"""
